@@ -1,4 +1,4 @@
-package logrus2slog
+package logrus
 
 import "log"
 
