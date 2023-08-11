@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
+	"strings"
+	"time"
 )
 
 // Defines the key when adding errors using WithError.
@@ -85,7 +88,10 @@ func toString(args []interface{}) string {
 }
 
 func (entry *Entry) Log(level Level, args ...interface{}) {
-	entry.Logger.Log(entry.Context, level.ToSlog(), toString(args))
+	if IsLevelEnabled(level) {
+		record := slog.NewRecord(time.Now(), level.ToSlog(), toString(args), getPC())
+		_ = entry.Logger.Handler().Handle(entry.Context, record)
+	}
 }
 
 func (entry *Entry) Trace(args ...interface{}) {
@@ -133,8 +139,9 @@ func (entry *Entry) IsLevelEnabled(level Level) bool {
 // Entry Printf family functions
 
 func (entry *Entry) Logf(level Level, format string, args ...interface{}) {
-	if entry.IsLevelEnabled(level) {
-		entry.Logger.Log(entry.Context, level.ToSlog(), fmt.Sprintf(format, args...))
+	if IsLevelEnabled(level) {
+		record := slog.NewRecord(time.Now(), level.ToSlog(), fmt.Sprintf(format, args...), getPC())
+		_ = entry.Logger.Handler().Handle(entry.Context, record)
 	}
 }
 
@@ -228,4 +235,26 @@ func (entry *Entry) Panicln(args ...interface{}) {
 func sprintlnn(args ...interface{}) string {
 	msg := fmt.Sprintln(args...)
 	return msg[:len(msg)-1]
+}
+
+func getPC() uintptr {
+	var pcs [6]uintptr
+	n := runtime.Callers(2, pcs[:])
+	frame := runtime.CallersFrames(pcs[:n])
+
+	for {
+		frame, _ := frame.Next()
+		if frame.PC == 0 {
+			break
+		}
+
+		if strings.HasPrefix(frame.Function, "github.com/sirupsen/logrus.") {
+			continue
+		}
+
+		// we got our target
+		return frame.PC
+	}
+
+	return 0
 }
