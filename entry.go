@@ -239,21 +239,21 @@ func sprintlnn(args ...interface{}) string {
 
 func getPC() uintptr {
 	var pcs [6]uintptr
-	n := runtime.Callers(2, pcs[:])
+	n := runtime.Callers(3, pcs[:])
 	frame := runtime.CallersFrames(pcs[:n])
 
+	var idx int
 	for {
 		frame, _ := frame.Next()
 		if frame.PC == 0 {
 			break
 		}
 
-		if strings.HasPrefix(frame.Function, "github.com/sirupsen/logrus.") {
-			continue
+		if !strings.HasPrefix(frame.Function, "github.com/sirupsen/logrus.") {
+			return pcs[idx]
 		}
 
-		// we got our target
-		return frame.PC
+		idx++
 	}
 
 	return 0
