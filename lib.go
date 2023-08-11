@@ -3,6 +3,7 @@ package logrus
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 )
 
@@ -135,3 +136,7 @@ const (
 	// TraceLevel level. Designates finer-grained informational events than the Debug.
 	TraceLevel
 )
+
+func Exit(code int) {
+	os.Exit(code)
+}
