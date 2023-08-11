@@ -1,3 +1,3 @@
-module github.com/flachnetz/logrus2slog
+module github.com/sirupsen/logrus
 
 go 1.21
