@@ -14,6 +14,7 @@ var ErrorKey = "error"
 type Entry struct {
 	Logger  *slog.Logger
 	Context context.Context
+	Data    []slog.Attr
 }
 
 func NewEntry(logger *Logger) *Entry {
@@ -29,7 +30,7 @@ func entryOf(ctx context.Context, logger *slog.Logger) *Entry {
 		ctx = context.Background()
 	}
 
-	return &Entry{logger, ctx}
+	return &Entry{Logger: logger, Context: ctx}
 }
 
 func (entry *Entry) Dup() *Entry {
@@ -50,17 +51,26 @@ func (entry *Entry) WithError(err error) *Entry {
 
 // Add a single field to the Entry.
 func (entry *Entry) WithField(key string, value interface{}) *Entry {
-	return entry.withLogger(entry.Logger.With(key, value))
+	attr := slog.Any(key, value)
+
+	e := entry.withLogger(entry.Logger.With(attr))
+	e.Data = append(e.Data, attr)
+	return e
 }
 
 // Add a map of fields to the Entry.
 func (entry *Entry) WithFields(fields Fields) *Entry {
+	e := entry.Dup()
+
 	var attrs []any
 	for key, value := range fields {
-		attrs = append(attrs, slog.Any(key, value))
+		attr := slog.Any(key, value)
+		e.Data = append(e.Data, attr)
+		attrs = append(attrs, attr)
 	}
 
-	return entry.withLogger(entry.Logger.With(attrs...))
+	e.Logger = entry.Logger.With(attrs...)
+	return e
 }
 
 // Add a context to the Entry.
