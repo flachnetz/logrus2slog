@@ -54,10 +54,16 @@ func (entry *Entry) WithError(err error) *Entry {
 
 // Add a single field to the Entry.
 func (entry *Entry) WithField(key string, value interface{}) *Entry {
-	attr := slog.Any(key, value)
+	for idx := range entry.Data {
+		if entry.Data[idx].Key == key {
+			return entry
+		}
+	}
 
+	attr := slog.Any(key, value)
 	e := entry.withLogger(entry.Logger.With(attr))
 	e.Data = append(e.Data, attr)
+
 	return e
 }
 
@@ -66,7 +72,14 @@ func (entry *Entry) WithFields(fields Fields) *Entry {
 	e := entry.Dup()
 
 	var attrs []any
+outer:
 	for key, value := range fields {
+		for idx := range entry.Data {
+			if entry.Data[idx].Key == key {
+				continue outer
+			}
+		}
+
 		attr := slog.Any(key, value)
 		e.Data = append(e.Data, attr)
 		attrs = append(attrs, attr)
